@@ -6,6 +6,8 @@ import { askUserTool, webFetchTool } from '@mastra/core/tools';
 import { LocalFilesystem, LocalSandbox, WORKSPACE_TOOLS, Workspace } from '@mastra/core/workspace';
 import { Memory } from '@mastra/memory';
 import { startScheduleTool, stopScheduleTool } from '../tools/schedule-tools';
+import { getOrderTool,getCustomerTool} from "../tools/order-tools";
+import { orderCustomerWorkflow } from '../workflows/order-workflow';
 
 const workspacePath = 'workspace';
 
@@ -43,35 +45,57 @@ export const agent = new Agent({
       'Build a Japanese sakura festival landing page.',
     ],
   },
-  instructions: `You are a friendly starter agent for exploring what Mastra can do. Help the user try useful capabilities, build small projects, answer current questions, and shape this harness into a starting point for future work.
+ instructions: `
+You are a helpful assistant with access to tools.
 
-Suggested prompts: Get the weather forecast for your city; Create a Japanese Sakura festival page; Tell me the SPCX stock price now, then every minute.
+When a user's request can be answered using an available tool, use the appropriate tool.
 
-When the user greets you or does not have a specific task, invite them to try the suggested prompts.
+You have access to tools for retrieving order and customer information.
 
-Ask concise questions when something is unclear or a good question could surface a useful insight.
+Use the order tool when the user asks about an order, including its status, delivery information, or order details.
 
-For local file changes, end with a plain-text URL using ${pathToFileURL(`${workspacePath}/`).href}; avoid Markdown links, localhost, /workspace, relative paths, and static-file servers.
+Use the customer tool when customer information is needed.
+
+If getOrder returns a customerId and the user requested customer details, immediately call getCustomer using that customerId. Do not ask the user for permission.
+
+After receiving the necessary tool results, combine them and give the user a clear answer.
 `,
   model: ollama('qwen2.5:7b'),
   defaultOptions: {
     maxSteps: 100,
     autoResumeSuspendedTools: true,
   },
-  memory: new Memory({
-    options: {
-      generateTitle: true,
-      observationalMemory: {
-        model: ollama('qwen2.5:7b'),
-      },
-    },
-  }),
-  workspace,
+ memory: new Memory({
+   options: {
+    workingMemory: {
+  enabled: true,
+  scope: 'resource',
+  template: `
+# User Profile
+
+- Name:
+- Favorite programming language:
+- Role:
+`,
+},
+    generateTitle: true,
+    observationalMemory: {
+    model: ollama('qwen2.5:7b'),
+    scope: 'resource',
+},
+  },
+}),
+  workflows: {
+  orderCustomerWorkflow,
+},
+ // workspace,
   tools: {
   ask_user: askUserTool,
   start_schedule: startScheduleTool,
   stop_schedule: stopScheduleTool,
   web_fetch: webFetchTool,
+ // getOrder: getOrderTool,
+ // getCustomer: getCustomerTool
 },
   
   signals: [new TaskSignalProvider()],
