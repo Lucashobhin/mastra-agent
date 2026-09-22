@@ -1,35 +1,31 @@
 import { mastra } from './src/mastra';
 
-const resourceId = 'shobhin-test-user';
-
-const thread1 = 'memory-test-thread-1';
-const thread2 = 'memory-test-thread-2';
-
 const agent = mastra.getAgent('agent');
 
-console.log('--- THREAD 1 ---');
+const resourceId = 'shobhin-working-memory-test-003';
 
-await agent.generate(
-  'My name is Shobhin and my favorite programming language is TypeScript.',
-  {
-    memory: {
-      resource: resourceId,
-      thread: thread1,
+async function main() {
+  await agent.generate(
+    'My name is Shobhin and my favorite programming language is Python. Remember this information.',
+    {
+      memory: {
+        resource: resourceId,
+        thread: 'working-memory-thread-003',
+      },
     },
-  },
-);
+  );
 
-console.log('--- THREAD 2 ---');
-
-const result = await agent.generate(
-  'What is my name and what is my favorite programming language?',
-  {
-    memory: {
-      resource: resourceId,
-      thread: thread2,
+  const result = await agent.generate(
+    'What is my name and favorite programming language? Answer in one sentence.',
+    {
+      memory: {
+        resource: resourceId,
+        thread: 'working-memory-thread-004',
+      },
     },
-  },
-);
+  );
 
-console.log('\nANSWER:');
-console.log(result.text);
+  console.log(result.text);
+}
+
+main().catch(console.error);

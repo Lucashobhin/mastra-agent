@@ -8,6 +8,9 @@ import { Memory } from '@mastra/memory';
 import { startScheduleTool, stopScheduleTool } from '../tools/schedule-tools';
 import { getOrderTool,getCustomerTool} from "../tools/order-tools";
 import { orderCustomerWorkflow } from '../workflows/order-workflow';
+import { LibSQLVector } from '@mastra/libsql';
+import { searchMomentumDocsTool } from "../tools/rag-tools";
+
 
 const workspacePath = 'workspace';
 
@@ -48,6 +51,15 @@ export const agent = new Agent({
  instructions: `
 You are a helpful assistant with access to tools.
 
+You have access to persistent user memory.
+
+When user information is available in Working Memory, use it to answer questions about the user.
+Do not claim that you do not know something if it is present in the user profile.
+
+When the user provides personal information such as their name, favorite programming language, role, preferences, or habits, remember it for future conversations.
+
+Answer clearly and directly.
+
 When a user's request can be answered using an available tool, use the appropriate tool.
 
 You have access to tools for retrieving order and customer information.
@@ -60,29 +72,45 @@ If getOrder returns a customerId and the user requested customer details, immedi
 
 After receiving the necessary tool results, combine them and give the user a clear answer.
 `,
+ 
   model: ollama('qwen2.5:7b'),
   defaultOptions: {
     maxSteps: 100,
     autoResumeSuspendedTools: true,
   },
- memory: new Memory({
-   options: {
+memory: new Memory({
+  vector: new LibSQLVector({
+    id: 'memory-vector',
+    url: 'file:./mastra.db',
+  }),
+
+  embedder: ollama.embedding('nomic-embed-text'),
+
+  options: {
+    semanticRecall: {
+      enabled:true,
+      topK: 5,
+      messageRange: 2,
+      scope: 'resource',
+    },
+
     workingMemory: {
-  enabled: true,
-  scope: 'resource',
-  template: `
+      enabled: true,
+      scope: 'resource',
+      template: `
 # User Profile
 
 - Name:
 - Favorite programming language:
 - Role:
 `,
-},
-    generateTitle: true,
+    },
+
     observationalMemory: {
-    model: ollama('qwen2.5:7b'),
-    scope: 'resource',
-},
+      enabled: true,
+      model: ollama('qwen2.5:7b'),
+      scope: 'resource',
+    },
   },
 }),
   workflows: {
@@ -95,7 +123,8 @@ After receiving the necessary tool results, combine them and give the user a cle
   stop_schedule: stopScheduleTool,
   web_fetch: webFetchTool,
  // getOrder: getOrderTool,
- // getCustomer: getCustomerTool
+    // getCustomer: getCustomerTool
+  searchMomentumDocs: searchMomentumDocsTool,
 },
   
   signals: [new TaskSignalProvider()],
