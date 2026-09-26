@@ -70,12 +70,14 @@ Use the customer tool when customer information is needed.
 
 If getOrder returns a customerId and the user requested customer details, immediately call getCustomer using that customerId. Do not ask the user for permission.
 
+When using searchMomentumDocs, call it ONCE per distinct question. After receiving tool results, immediately use that information to answer — do NOT call the same tool again for the same question unless the first result was completely empty or irrelevant.
+
 After receiving the necessary tool results, combine them and give the user a clear answer.
 `,
  
   model: ollama('qwen2.5:7b'),
   defaultOptions: {
-    maxSteps: 100,
+    maxSteps: 10,
     autoResumeSuspendedTools: true,
   },
 memory: new Memory({
