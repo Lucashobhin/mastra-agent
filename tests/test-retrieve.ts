@@ -1,4 +1,4 @@
-import { retrieveContext } from "./src/rag/retrieve";
+import { retrieveContext } from "../src/rag/retrieve";
 
 const questions = [
   "Which database does Momentum use?",

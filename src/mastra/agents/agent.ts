@@ -10,9 +10,29 @@ import { getOrderTool,getCustomerTool} from "../tools/order-tools";
 import { orderCustomerWorkflow } from '../workflows/order-workflow';
 import { LibSQLVector } from '@mastra/libsql';
 import { searchMomentumDocsTool } from "../tools/rag-tools";
-
+import { deepwikiClient } from "../mcp/deepwiki-client";
 
 const workspacePath = 'workspace';
+
+async function loadDeepwikiTools() {
+  try {
+    return await Promise.race([
+      deepwikiClient.listTools(),
+      new Promise<Record<string, never>>((resolve) =>
+        setTimeout(() => {
+          console.warn("DeepWiki MCP not reachable in 5s, starting without it");
+          resolve({});
+        }, 20000),
+      ),
+    ]);
+  } catch (err) {
+    console.warn("DeepWiki MCP failed to load, starting without it", err);
+    return {};
+  }
+}
+
+const deepwikiTools = await loadDeepwikiTools();
+
 
 const workspace = new Workspace({
   id: 'agent-workspace',
@@ -127,6 +147,7 @@ memory: new Memory({
  // getOrder: getOrderTool,
     // getCustomer: getCustomerTool
   searchMomentumDocs: searchMomentumDocsTool,
+  ...deepwikiTools,
 },
   
   signals: [new TaskSignalProvider()],

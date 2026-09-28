@@ -1,4 +1,4 @@
-import { orderCustomerWorkflow } from './src/mastra/workflows/order-workflow';
+import { orderCustomerWorkflow } from '../src/mastra/workflows/order-workflow';
 
 const run = await orderCustomerWorkflow.createRun();
 

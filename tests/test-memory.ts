@@ -1,4 +1,4 @@
-import { mastra } from './src/mastra';
+import { mastra } from '../src/mastra';
 
 const agent = mastra.getAgent('agent');
 
