@@ -3,8 +3,9 @@ import { z } from 'zod';
 
 export const getOrderTool = createTool({
   id: 'getOrder',
+
   description:
-    'Get the status and details of an order. Use this tool whenever the user asks about an order, order status, delivery date, or customer information. Pass the order ID as orderId.',
+    'Get the status and details of an order. Use this tool when the user asks about an order, order status, delivery date, or order details. Returns the customerId associated with the order.',
 
   inputSchema: z.object({
     orderId: z.number().describe('The ID of the order'),
@@ -24,8 +25,9 @@ export const getOrderTool = createTool({
 
 export const getCustomerTool = createTool({
   id: 'getCustomer',
+
   description:
-    'Get customer details using a customer ID. Use this when customer information is needed.',
+    'Get customer details using a customer ID. Use this tool when the user asks for a customer name, email, or other customer information.',
 
   inputSchema: z.object({
     customerId: z.number().describe('The ID of the customer'),

@@ -1,3 +1,4 @@
+import { google } from '@ai-sdk/google';
 import { ollama } from 'ollama-ai-provider-v2';
 import { pathToFileURL } from 'node:url';
 import { Agent } from '@mastra/core/agent';
@@ -13,20 +14,17 @@ import { searchMomentumDocsTool } from "../tools/rag-tools";
 import { deepwikiClient } from "../mcp/deepwiki-client";
 
 const workspacePath = 'workspace';
-
 async function loadDeepwikiTools() {
   try {
-    return await Promise.race([
-      deepwikiClient.listTools(),
-      new Promise<Record<string, never>>((resolve) =>
-        setTimeout(() => {
-          console.warn("DeepWiki MCP not reachable in 5s, starting without it");
-          resolve({});
-        }, 20000),
-      ),
-    ]);
+    const tools = await deepwikiClient.listTools();
+
+    console.log("DeepWiki tools loaded:");
+    console.log(Object.keys(tools));
+
+    return tools;
   } catch (err) {
-    console.warn("DeepWiki MCP failed to load, starting without it", err);
+    console.error("DEEPWIKI MCP ERROR:");
+    console.error(err);
     return {};
   }
 }
@@ -68,6 +66,8 @@ export const agent = new Agent({
       'Build a Japanese sakura festival landing page.',
     ],
   },
+
+
  instructions: `
 You are a helpful assistant with access to tools.
 
@@ -88,18 +88,20 @@ Use the order tool when the user asks about an order, including its status, deli
 
 Use the customer tool when customer information is needed.
 
-If getOrder returns a customerId and the user requested customer details, immediately call getCustomer using that customerId. Do not ask the user for permission.
+Call getOrder or getCustomer at most ONCE per distinct request. After getCustomer returns a result containing "name" and "email" fields, the request is complete — immediately write your final answer in plain text and do not call any tool again. After getOrder returns a result containing "status" and "customerId", if the user only asked about the order (not the customer), immediately write your final answer and do not call any tool again.
 
 When using searchMomentumDocs, call it ONCE per distinct question. After receiving tool results, immediately use that information to answer — do NOT call the same tool again for the same question unless the first result was completely empty or irrelevant.
 
 After receiving the necessary tool results, combine them and give the user a clear answer.
 `,
  
-  model: ollama('qwen2.5:7b'),
+  model: google('gemini-3.1-flash-lite'),
   defaultOptions: {
     maxSteps: 10,
     autoResumeSuspendedTools: true,
   },
+
+
 memory: new Memory({
   vector: new LibSQLVector({
     id: 'memory-vector',
@@ -125,6 +127,7 @@ memory: new Memory({
 - Name:
 - Favorite programming language:
 - Role:
+- Favorite movie triology:
 `,
     },
 
@@ -138,14 +141,15 @@ memory: new Memory({
   workflows: {
   orderCustomerWorkflow,
 },
- // workspace,
+  // workspace,
+  
   tools: {
   ask_user: askUserTool,
   start_schedule: startScheduleTool,
   stop_schedule: stopScheduleTool,
   web_fetch: webFetchTool,
- // getOrder: getOrderTool,
-    // getCustomer: getCustomerTool
+  getOrder: getOrderTool,
+  getCustomer: getCustomerTool,
   searchMomentumDocs: searchMomentumDocsTool,
   ...deepwikiTools,
 },
